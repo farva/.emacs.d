@@ -208,29 +208,64 @@
    "gs" '(magit-status :which-key "status")))
 
 (use-package flycheck
+  :disabled
   :ensure t
   :init (global-flycheck-mode))
 
 (use-package go-mode
   :ensure t
-  :mode "\\.go\\'")
+  :mode "\\.go\\'"
+  :hook
+  (go-mode . (lambda () (setq tab-width 4)))
+  (go-mode . (lambda () (add-hook 'before-save-hook 'gofmt-before-save t t)))
+  :config
+  (setq gofmt-command "goimports"))
+
+(use-package go-eldoc
+  :disabled
+  :ensure t
+  :after go-mode
+  :commands go-eldoc-setup
+  :hook (go-mode . go-eldoc-setup))
 
 (use-package lsp-mode
   ;; :quelpa (lsp-mode :fetcher github :repo "farva/lsp-mode" :branch "redundant-client")
   :ensure t
   :commands lsp
   :init
-  (setq lsp-clients-go-server "go-langserver")
-  :hook (go-mode . lsp))
+  (setq lsp-clients-go-server "")
+  ;; (setq lsp-clients-go-server "bingo --diagnostics-style=instant")
+  ;; (setq lsp-clients-go-server "bingo")
+  ;; (setq lsp-prefer-flymake nil)
+  :hook (go-mode . lsp)
+  ;; :config
+  ;; (lsp-register-client
+  ;;  (make-lsp-client :new-connection (lsp-stdio-connection "bingo --diagnostics-style=instant")
+  ;;                   :major-modes '(go-mode)
+  ;;                   :priority 1
+  ;;                   :server-id 'my-go-bingo
+  ;;                   :library-folders-fn (lambda (_workspace)
+  ;;                                         lsp-clients-go-library-directories)))
+  )
 
 (use-package lsp-ui
   :ensure t
-  :commands lsp-ui)
+  :hook (lsp-mode . lsp-ui-mode)
+  :bind (:map lsp-ui-mode-map
+	      ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+	      ([remap xref-find-references] . lsp-ui-peek-find-references))
+  :commands lsp-ui
+  :init
+  :config
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal lsp-ui-mode-map
+      (kbd "gr") #'xref-find-references)))
+
 (use-package company-lsp
   :ensure t
   :commands company-lsp
   :after company
-  :init (push 'company-lsp company-backends))
+  :init (add-to-list 'company-backends #'company-lsp))
 
 (use-package eglot
   :disabled
@@ -382,6 +417,14 @@
   :config
   (setq multi-term-program "/bin/bash"))
 
+;; backward-forward
+(use-package backward-forward
+  :ensure t
+  :config
+  ;; TODO manage dependency with Evil
+  (setf backward-forward-evil-compatibility-mode t)
+  (backward-forward-mode t))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -425,12 +468,43 @@
    (when-let ((sym (symbol-at-point)))
      (symbol-name sym))))
 
+;; (which-function-mode)
+;; (setq-default header-line-format
+;;               '((which-func-mode ("" which-func-format " "))))
+;; (setq mode-line-misc-info
+;;       ;; We remove Which Function Mode from the mode line, because it's mostly
+;;       ;; invisible here anyway.
+;;       (assq-delete-all 'which-func-mode mode-line-misc-info))
+
+(define-derived-mode go-test-mode-as-root compilation-mode "Go-Test."
+  "Major mode for the Go-Test compilation buffer."
+  (use-local-map go-test-mode-map)
+  (setq major-mode 'go-test-mode)
+  (setq mode-name "Go-Test")
+  (setq-local truncate-lines t)
+  ;;(run-hooks 'go-test-mode-hook)
+  (font-lock-add-keywords nil go-test-font-lock-keywords))
+
+(defun go-test--go-test-as-root (args &optional env)
+  "Start the go test command using `ARGS'."
+  (let ((buffer "*Go Test*")) ; (concat "*go-test " args "*")))
+    (go-test--cleanup buffer)
+    (compilation-start (go-test--get-program (go-test--arguments args) " PATH=$PATH sudo -E")
+                       t
+                       'go-test--compilation-name)
+    ;; (with-current-buffer "*Go Test*"
+    ;;   (rename-buffer buffer)
+    ;;   (go-test-mode-as-root))
+    (set-process-sentinel (get-buffer-process buffer) 'go-test--finished-sentinel)))
+
+(advice-add 'go-test--go-test :override #'go-test--go-test-as-root)
+
 ;;;;;;;;;;;;;
 ;; kmacros ;;
 ;;;;;;;;;;;;;
 
 (fset 'go-wrap-if-err
-   [?^ ?i ?i ?f ?  ?e ?r ?r ?  ?! backspace ?: ?= ?  escape ?A ?\; ?  ?e ?r ?r ?  ?! ?= ?  ?n ?u ?i backspace backspace ?i ?l ?  ?\{ return ?r ?e ?t ?u ?r ?n ?  ?e ?r ?r return escape])
+      [?^ ?i ?i ?f ?  ?e ?r ?r ?  ?! backspace ?: ?= ?  escape ?A ?\; ?  ?e ?r ?r ?  ?! ?= ?  ?n ?u ?i backspace backspace ?i ?l ?  ?\{ return ?r ?e ?t ?u ?r ?n ?  ?e ?r ?r return escape])
 
 ;; Load customizations from a dedicated file
 (load custom-file)
