@@ -37,6 +37,55 @@
   (package-install 'use-package))
 (require 'use-package)
 
+;; Load EXWM
+(use-package exwm
+  :when (or (string= (getenv "DESKTOP_SESSION") "ubuntu-exwm") (string= (getenv "DESKTOP_SESSION") "exwm-gnome-flashback-session"))
+  :ensure t
+  :custom
+  (exwm-input-simulation-keys
+   '(("" .
+      [left])
+     ("" .
+      [right])
+     ("" .
+      [up])
+     ("" .
+      [down])
+     ("" .
+      [home])
+     ("" .
+      [end])
+     ([134217846]
+      .
+      [prior])
+     ("" .
+      [next])
+     ("" .
+      [delete])
+     ("" .
+      [S-end delete])))
+  :config
+  (require 'exwm)
+  (require 'exwm-config)
+  (exwm-config-default)
+  ;; remove IDO
+  (ido-mode -1)
+  (remove-hook 'exwm-init-hook #'exwm-config--fix/ido-buffer-window-other-frame)
+  ;; (push ?\M-\  exwm-input-prefix-keys)
+  ;; (push ?\C-\g exwm-input-prefix-keys)
+  ;; (push ?\C-\\ exwm-input-prefix-keys)
+  ;; (push ?\  exwm-input-prefix-keys) ; for leader key
+  ;; hack around Ediff opening frames and messing up
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
+  (require 'exwm-randr)
+  (exwm-randr-enable))
+
+(defun change-to-he ()
+  "miaw."
+  (interactive)
+  (exwm-input-set-local-simulation-keys
+   '(([?a] . [169 215]))))
+
 ;; Quelpa
 (use-package quelpa
   :ensure t
@@ -156,6 +205,7 @@
    "C-s" 'counsel-grep-or-swiper ; search for string in current buffer
    "M-x" 'counsel-M-x            ; replace default M-x with ivy backend
    ;; "TAB" 'indent-for-tab-command ; replace default with 'smart' one
+   "s-!" 'counsel-linux-app ; for EXWM
    )
   (general-define-key
    :states '(normal visual motion insert emacs)
@@ -488,6 +538,65 @@
   ;; on save
   (js-mode . jscs-fix-run-before-save)
   (js2-mode . jscs-fix-run-before-save))
+
+;; EXWM-evil
+(use-package exwm-firefox-core
+  :after exwm
+  :ensure t)
+
+(use-package exwm-firefox-evil
+  :after exwm-firefox-core
+  :ensure t
+  :commands exwm-firefox-evil-mode
+  :hook (exwm-manage-finish . (lambda () (exwm-firefox-evil-mode 1)))
+  :config
+  ;; save `<escape>' from the jaws of the `insert' mode
+  (push 'escape exwm-input-prefix-keys)
+  ;; hijack `C-g'
+  (push ?\C-\g exwm-input-prefix-keys)
+
+  ;; override `normal' function
+  (defun my:exwm-firefox-evil-normal ()
+    "Pass every key directly to Emacs."
+    (interactive)
+    ;; (setq-local exwm-input-line-mode-passthrough t)
+    (evil-force-normal-state)
+    (unless (local-variable-p 'exwm-input-prefix-keys)
+      (make-local-variable 'exwm-input-prefix-keys)
+      (let ((keys '(?~ ?\` ?\; ?1 ?! ?2 ?@ ?3 ?\# ?4 ?$ ?5 ?% ?6 ?^ ?7 ?& ?8 ?* ?9 ?\( ?0 ?\) ?- ?_ ?= ?+ ?q ?Q ?w ?W ?e ?E ?r ?R ?t ?T ?y ?Y ?u ?U ?i ?I ?o ?O ?p ?P ?\[ ?\] ?\{ ?\} ?\\ ?\| ?a ?A ?s ?S ?d ?D ?f ?F ?g ?G ?h ?H ?j ?J ?k ?K ?l ?L ?\; ?: ?\' ?\" ?z ?Z ?x ?X ?c ?C ?v ?V ?b ?B ?n ?N ?m ?M ?\, ?< ?\. ?> ?/ ?? ?\ ?\
+		       ?\C-s ?\t)))
+	(dolist (elt keys)
+	  (push elt exwm-input-prefix-keys)))))
+  ;; (define-key exwm-firefox-evil-mode-map [remap evil-force-normal-state] 'my:exwm-firefox-evil-normal)
+  (advice-add 'exwm-firefox-evil-normal :override #'my:exwm-firefox-evil-normal)
+
+  ;; override `insert' function
+  (defun my:exwm-firefox-evil-insert (;; count &optional vcount skip-empty-lines
+				      )
+    "Pass every key to firefox."
+    (interactive
+     ;; (list (prefix-numeric-value current-prefix-arg)
+     ;;       (and (evil-visual-state-p)
+     ;; 		(memq (evil-visual-type) '(line block))
+     ;; 		(save-excursion
+     ;;              (let ((m (mark)))
+     ;;                ;; go to upper-left corner temporarily so
+     ;;                ;; `count-lines' yields accurate results
+     ;;                (evil-visual-rotate 'upper-left)
+     ;;                (prog1 (count-lines evil-visual-beginning evil-visual-end)
+     ;;                  (set-mark m)))))
+     ;;       (evil-visual-state-p))
+     )
+    ;; (setq-local exwm-input-line-mode-passthrough nil)
+    ;; (evil-insert count vcount skip-empty-lines)
+    (evil-insert-state)
+    (kill-local-variable 'exwm-input-prefix-keys))
+  ;; (define-key exwm-firefox-evil-mode-map [remap evil-insert] 'my:exwm-firefox-evil-insert)
+  (advice-add 'exwm-firefox-evil-insert :override #'my:exwm-firefox-evil-insert)
+
+  ;; Find
+  (evil-define-key 'normal exwm-firefox-evil-mode-map (kbd "C-s") 'exwm-firefox-core-find)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
