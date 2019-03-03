@@ -208,7 +208,6 @@
    "gs" '(magit-status :which-key "status")))
 
 (use-package flycheck
-  :disabled
   :ensure t
   :init (global-flycheck-mode))
 
@@ -217,12 +216,14 @@
   :mode "\\.go\\'"
   :hook
   (go-mode . (lambda () (setq tab-width 4)))
-  (go-mode . (lambda () (add-hook 'before-save-hook 'gofmt-before-save t t)))
-  :config
-  (setq gofmt-command "goimports"))
+  ;; (go-mode . (lambda () (add-hook 'before-save-hook 'gofmt-before-save nil t)))
+  (lsp-after-open . (lambda ()
+		      (remove-hook 'before-save-hook #'gofmt-before-save t)
+		      (add-hook 'before-save-hook #'gofmt-before-save nil t)))
+  :custom
+  (gofmt-command "goimports"))
 
 (use-package go-eldoc
-  :disabled
   :ensure t
   :after go-mode
   :commands go-eldoc-setup
@@ -233,12 +234,28 @@
   :ensure t
   :commands lsp
   :init
-  (setq lsp-clients-go-server "")
-  ;; (setq lsp-clients-go-server "bingo --diagnostics-style=instant")
+  ;; (setq lsp-clients-go-server "")
   ;; (setq lsp-clients-go-server "bingo")
-  ;; (setq lsp-prefer-flymake nil)
+  (setq lsp-prefer-flymake nil)
+  ;; disable lsp-eldoc
+  (setq lsp-eldoc-enable-hover nil)
+  (setq lsp-eldoc-enable-signature-help nil)
+  ;; (add-hook 'go-mode-hook (lambda ()
+  ;; 			    (lsp)
+  ;; 			    (remove-hook 'before-save-hook 'lsp--before-save t)
+  ;; 			    (add-hook 'before-save-hook #'lsp--before-save t t))
+  ;; 	    t)
+  ;; :hook (go-mode . (lambda ()
+  ;; 		     (lsp)
+  ;; 		     (remove-hook 'before-save-hook 'lsp--before-save t)
+  ;; 		     (add-hook 'before-save-hook #'lsp--before-save t t)))
+  :custom
+  (lsp-clients-go-server-args '("--diagnostics-style"
+				"instant"
+				"--format-style"
+				"goimports"))
   :hook (go-mode . lsp)
-  ;; :config
+  :config
   ;; (lsp-register-client
   ;;  (make-lsp-client :new-connection (lsp-stdio-connection "bingo --diagnostics-style=instant")
   ;;                   :major-modes '(go-mode)
@@ -246,7 +263,24 @@
   ;;                   :server-id 'my-go-bingo
   ;;                   :library-folders-fn (lambda (_workspace)
   ;;                                         lsp-clients-go-library-directories)))
-  )
+  (defun my:lsp-clients-go--make-init-options ()
+    "My init options for go-langserver."
+    `(:funcSnippetEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-func-snippet-enabled)
+                          :gocodeCompletionEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-gocode-completion-enabled)
+                          :formatTool ,lsp-clients-go-format-tool
+  			  :lintTool "golint"
+                          :goimportsLocalPrefix ,lsp-clients-go-imports-local-prefix
+                          :maxParallelism ,lsp-clients-go-max-parallelism
+                          :useBinaryPkgCache ,lsp-clients-go-use-binary-pkg-cache
+                          :diagnosticsEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-diagnostics-enabled)))
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection "go-langserver")
+                    :major-modes '(go-mode)
+                    :priority -10
+                    :initialization-options 'my:lsp-clients-go--make-init-options
+                    :server-id 'my-go-ls
+                    :library-folders-fn (lambda (_workspace)
+                                          lsp-clients-go-library-directories))))
 
 (use-package lsp-ui
   :ensure t
@@ -256,9 +290,15 @@
 	      ([remap xref-find-references] . lsp-ui-peek-find-references))
   :commands lsp-ui
   :init
+  :custom
+  (lsp-ui-sideline-enable t)
+  (lsp-ui-sideline-ignore-duplicate t)
+  (lsp-ui-sideline-show-hover nil)
+  (lsp-ui-sideline-show-symbol nil)
   :config
   (with-eval-after-load 'evil
     (evil-define-key 'normal lsp-ui-mode-map
+      (kbd "gd") #'xref-find-definitions
       (kbd "gr") #'xref-find-references)))
 
 (use-package company-lsp
@@ -381,6 +421,10 @@
   :ensure t
   :after go-mode)
 
+;; Go Playground locally
+(use-package go-playground
+  :ensure t)
+
 ;; Yasnippet
 (use-package yasnippet
   :ensure t
@@ -398,6 +442,7 @@
 
 ;; Aggressive indent
 (use-package aggressive-indent
+  :disabled
   :ensure t
   :hook (prog-mode . aggressive-indent-mode))
 
@@ -424,6 +469,25 @@
   ;; TODO manage dependency with Evil
   (setf backward-forward-evil-compatibility-mode t)
   (backward-forward-mode t))
+
+;; highlight indent
+(use-package highlight-indent-guides
+  :ensure t
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :custom
+  (highlight-indent-guides-responsive 'stack)
+  (highlight-indent-guides-method 'character))
+
+;; JSCS
+(use-package jscs
+  :ensure t
+  :hook
+  (js-mode . jscs-indent-apply)
+  (js2-mode . jscs-indent-apply)
+  (json-mode . jscs-indent-apply)
+  ;; on save
+  (js-mode . jscs-fix-run-before-save)
+  (js2-mode . jscs-fix-run-before-save))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
@@ -497,7 +561,7 @@
     ;;   (go-test-mode-as-root))
     (set-process-sentinel (get-buffer-process buffer) 'go-test--finished-sentinel)))
 
-(advice-add 'go-test--go-test :override #'go-test--go-test-as-root)
+;; (advice-add 'go-test--go-test :override #'go-test--go-test-as-root)
 
 ;;;;;;;;;;;;;
 ;; kmacros ;;
