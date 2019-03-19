@@ -110,11 +110,25 @@
 (use-package evil-collection
   :after evil
   :ensure t
-  :init
-  (setq evil-collection-setup-minibuffer t)
-  (setq evil-collection-outline-bind-tab-p nil) 
+  :custom
+  (evil-collection-setup-minibuffer t)
+  (evil-collection-outline-bind-tab-p nil)
+  (evil-collection-company-use-tng nil)
   :config
-  (evil-collection-init))
+  (evil-collection-init)
+  ;; mimick `company-tng-configure-default', but don't disable choosing
+  (with-eval-after-load 'company
+    (setq company-require-match nil)
+    (setq company-frontends '(;; company-tng-frontend
+                              company-pseudo-tooltip-frontend
+                              company-echo-metadata-frontend))
+    (let ((keymap company-active-map))
+      (define-key keymap [tab] 'company-select-next)
+      (define-key keymap (kbd "TAB") 'company-select-next)
+      (define-key keymap [backtab] 'company-select-previous)
+      (define-key keymap (kbd "S-TAB") 'company-select-previous))
+    )
+  )
 
 ;; Vim mode surround functionality
 (use-package evil-surround
@@ -387,8 +401,123 @@
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown")
-  :config (setq markdown-header-scaling t))
+  :custom
+  (markdown-command "multimarkdown")
+  (markdown-header-scaling t)
+  (markdown-fontify-code-blocks-natively t)
+  (markdown-code-lang-modes
+   '(("ocaml" . tuareg-mode)
+     ("elisp" . emacs-lisp-mode)
+     ("ditaa" . artist-mode)
+     ("asymptote" . asy-mode)
+     ("dot" . fundamental-mode)
+     ("sqlite" . sql-mode)
+     ("calc" . fundamental-mode)
+     ("C" . c-mode)
+     ("cpp" . c++-mode)
+     ("C++" . c++-mode)
+     ("screen" . shell-script-mode)
+     ("console" . sh-mode)
+     ("shellsession" . sh-mode)
+     ("shell" . sh-mode)
+     ("bash" . sh-mode)
+     ("go" . go-mode))))
+
+(use-package gh-md
+  :ensure t)
+
+;; mmm
+(use-package mmm-mode
+  :disabled
+  :ensure t
+  :commands mmm-mode
+  :hook markdown-mode
+  :custom
+  (mmm-parse-when-idle 't)
+  :config
+  ;; TODO refactor like https://jblevins.org/log/mmm
+  (mmm-add-classes '((markdown-ini
+                      :submode conf-unix-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *ini[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-python
+                      :submode python-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *python[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-html
+                      :submode web-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *html[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-java
+                      :submode java-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *java[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-ruby
+                      :submode ruby-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *ruby[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-c
+                      :submode c-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *c[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-c++
+                      :submode c++-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *c\+\+[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-elisp
+                      :submode emacs-lisp-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *elisp[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-javascript
+                      :submode javascript-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *javascript[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-ess
+                      :submode R-mode
+                      :face mmm-declaration-submode-face
+                      :front "^```{?r.*}?[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-rust
+                      :submode rust-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *rust[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-go
+                      :submode go-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *go[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-classes '((markdown-console
+                      :submode shell-script-mode
+                      :face mmm-declaration-submode-face
+                      :front "^``` *\\(shellsession\\|console\\|shell\\)[\n\r]+"
+                      :back "^```$")))
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-python)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-java)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-ruby)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-c)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-c++)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-elisp)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-html)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-javascript)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-ess)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-rust)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-ini)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-go)
+  (mmm-add-mode-ext-class 'markdown-mode nil 'markdown-console))
+
+;; GH live preview markdown
+(use-package vmd-mode
+  :ensure t)
 
 ;; smartparens
 (use-package smartparens
