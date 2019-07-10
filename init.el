@@ -98,13 +98,63 @@
 ;; Vim mode
 (use-package evil
   :ensure t
-  :init
-  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (setq evil-want-keybinding nil)
+  :custom
+  (evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (evil-want-keybinding nil)
+  ;; finer `undo' while in insert mode
+  (evil-want-fine-undo t)
   :config
   (evil-mode 1)
-  ;; finer `undo' while in insert mode
-  (setq evil-want-fine-undo t))
+  ;; Taken from: https://gist.github.com/kidd/d8dcf0d40d184ecec0a87d28cee52a49
+  (cl-loop for (mode . state) in '(;; (inferior-emacs-lisp-mode      . emacs)
+				   ;; (pylookup-mode                 . emacs)
+				   ;; (navi-mode                     . emacs)
+				   ;; (archive-mode                  . emacs)
+				   ;; (comint-mode                   . emacs)
+				   ;; (ebib-entry-mode               . emacs)
+				   ;; (dirtree-mode                  . emacs)
+				   ;; (image-mode                    . emacs)
+				   ;; (ebib-log-mode                 . emacs)
+				   ;; (gtags-select-mode             . emacs)
+				   ;; (shell-mode                    . emacs)
+				   ;; (term-mode                     . emacs)
+				   ;; (bc-menu-mode                  . emacs)
+				   ;; (grep-mode                     . emacs)
+				   ;; (help-mode                     . emacs)
+				   ;; (eww-mode                      . emacs)
+				   ;; (google-contacts-mode          . emacs)
+				   ;; (magit-branch-manager-mode-map . emacs)
+				   ;; (semantic-symref-results-mode  . emacs)
+				   ;; (fundamental-mode              . emacs)
+				   ;; (cider-stacktrace-mode         . emacs)
+				   ;; (diff-mode                     . emacs)
+				   ;; (magit-popup-mode              . emacs)
+				   ;; (magit-revision-mode           . emacs)
+				   ;; (magit-mode                    . emacs)
+				   ;; (magit-refs-mode               . emacs)
+				   ;; (git-rebase-mode               . emacs)
+				   ;; (magit-popup-sequence-mode     . emacs)
+				   ;; (git-rebase-mode               . emacs)
+				   ;; (elfeed-show-mode              . emacs)
+				   ;; (elfeed-search-mode            . emacs)
+				   ;; (docker-images-mode            . emacs)
+				   ;; (docker-containers-mode        . emacs)
+				   ;; (cider-docview-mode            . emacs)
+				   (sly-db-mode                   . emacs)
+				   (sly-inspector-mode            . emacs)
+				   (sly-trace-dialog-mode         . emacs)
+				   (sly-stickers--replay-mode     . emacs)
+				   (sly-xref-mode                 . emacs)
+				   ;; (notmuch-tree-mode             . emacs)
+				   ;; (magit-repolist-mode           . emacs)
+				   ;; (xref--xref-buffer-mode        . emacs)
+				   ;; (eww-mode                      . emacs)
+				   ;; (neotree-mode                  . emacs)
+				   (sly-connection-list-mode      . emacs)
+				   (sly-thread-control-mode       . emacs)
+				   ;; (rdictcc-buffer-mode           . emacs)
+				   )
+	   do (evil-set-initial-state mode state)))
 
 ;; `evil' integration with other packages
 (use-package evil-collection
@@ -204,15 +254,15 @@
 ;; Custom keybinding
 (use-package general
   :ensure t
-  :init
-  (setq general-override-states '(insert
-                                  emacs
-                                  hybrid
-                                  normal
-                                  visual
-                                  motion
-                                  operator
-                                  replace))
+  :custom
+  (general-override-states '(insert
+                             emacs
+                             hybrid
+                             normal
+                             visual
+                             motion
+                             operator
+                             replace))
   :config
   (general-define-key
    ;; replace default keybindings
@@ -220,7 +270,13 @@
    "M-x" 'counsel-M-x            ; replace default M-x with ivy backend
    ;; "TAB" 'indent-for-tab-command ; replace default with 'smart' one
    "s-!" 'counsel-linux-app ; for EXWM
-   )
+   "C->" 'eyebrowse-next-window-config
+   "C-<" 'eyebrowse-prev-window-config)
+  (general-define-key
+   :states '(normal visual motion emacs)
+   :prefix "C-w"
+   "M-c" 'eyebrowse-create-window-config
+   "M-r" 'eyebrowse-rename-window-config)
   (general-define-key
    :states '(normal visual motion insert emacs)
    :keymaps 'override
@@ -621,9 +677,18 @@
 
 ;; Aggressive indent
 (use-package aggressive-indent
-  :disabled
   :ensure t
-  :hook (prog-mode . aggressive-indent-mode))
+  :hook
+  (lisp-mode . aggressive-indent-mode)
+  (emacs-lisp-mode . aggressive-indent-mode))
+
+;; Workspaces
+(use-package eyebrowse
+  :ensure t
+  :diminish eyebrowse-mode
+  :config
+  (eyebrowse-mode t)
+  (setf (cdr eyebrowse-mode-map) nil))
 
 ;; ace link
 (use-package ace-link
@@ -724,8 +789,49 @@
   (advice-add 'exwm-firefox-evil-insert :override #'my:exwm-firefox-evil-insert)
 
   ;; Find
-  (evil-define-key 'normal exwm-firefox-evil-mode-map (kbd "C-s") 'exwm-firefox-core-find)
-  )
+  (evil-define-key 'normal exwm-firefox-evil-mode-map (kbd "C-s") 'exwm-firefox-core-find))
+
+(use-package sly
+  :ensure t
+  :custom
+  (inferior-lisp-program "ros -Q run")
+  :config
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal sly-mode-map
+      (kbd "gd") #'sly-edit-definition
+      (kbd "gr") #'sly-edit-uses)))
+
+(use-package pdf-tools
+  :ensure t
+  :config
+  (pdf-loader-install)
+  (defun me/pdf-set-last-viewed-bookmark ()
+    (interactive)
+    (when (eq major-mode 'pdf-view-mode)
+      (bookmark-set (me//pdf-get-bookmark-name))))
+
+  (defun me//pdf-jump-last-viewed-bookmark ()
+    (bookmark-set "fake")
+    (let ((bmk (me//pdf-get-bookmark-name)))
+      (when (me//pdf-has-last-viewed-bookmark bmk)
+        (bookmark-jump bmk))))
+
+  (defun me//pdf-has-last-viewed-bookmark (bmk)
+    (assoc bmk bookmark-alist))
+
+  (defun me//pdf-get-bookmark-name ()
+    (concat "PDF-last-viewed: " (buffer-file-name)))
+
+  (defun me//pdf-set-all-last-viewed-bookmarks ()
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf (me/pdf-set-last-viewed-bookmark))))
+
+  (add-hook 'kill-buffer-hook 'me/pdf-set-last-viewed-bookmark)
+  (add-hook 'pdf-view-mode-hook 'me//pdf-jump-last-viewed-bookmark)
+
+  ;; As `save-place-mode' does
+  (unless noninteractive
+    (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
