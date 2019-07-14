@@ -353,13 +353,10 @@
   ;; :quelpa (lsp-mode :fetcher github :repo "farva/lsp-mode" :branch "redundant-client")
   :ensure t
   :commands lsp
-  :init
+  ;; :init
   ;; (setq lsp-clients-go-server "")
   ;; (setq lsp-clients-go-server "bingo")
-  (setq lsp-prefer-flymake nil)
   ;; disable lsp-eldoc
-  (setq lsp-eldoc-enable-hover nil)
-  (setq lsp-eldoc-enable-signature-help nil)
   ;; (add-hook 'go-mode-hook (lambda ()
   ;; 			    (lsp)
   ;; 			    (remove-hook 'before-save-hook 'lsp--before-save t)
@@ -370,10 +367,13 @@
   ;; 		     (remove-hook 'before-save-hook 'lsp--before-save t)
   ;; 		     (add-hook 'before-save-hook #'lsp--before-save t t)))
   :custom
-  (lsp-clients-go-server-args '("--diagnostics-style"
-				"instant"
-				"--format-style"
-				"goimports"))
+  ;; (lsp-clients-go-server-args '("--diagnostics-style"
+  ;; 				"instant"
+  ;; 				"--format-style"
+  ;; 				"goimports"))
+  (lsp-prefer-flymake nil)
+  (lsp-eldoc-enable-hover nil)
+  (lsp-eldoc-enable-signature-help nil)
   :hook (go-mode . lsp)
   :config
   ;; (lsp-register-client
@@ -393,14 +393,12 @@
                           :maxParallelism ,lsp-clients-go-max-parallelism
                           :useBinaryPkgCache ,lsp-clients-go-use-binary-pkg-cache
                           :diagnosticsEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-diagnostics-enabled)))
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-stdio-connection "go-langserver")
-                    :major-modes '(go-mode)
-                    :priority -10
-                    :initialization-options 'my:lsp-clients-go--make-init-options
-                    :server-id 'my-go-ls
-                    :library-folders-fn (lambda (_workspace)
-                                          lsp-clients-go-library-directories))))
+  ;; (lsp-register-client
+  ;;  (make-lsp-client :new-connection (lsp-stdio-connection "gopls")
+  ;;                   :major-modes '(go-mode)
+  ;;                   :priority -10
+  ;; 		    :server-id 'gopls))
+  )
 
 (use-package lsp-ui
   :ensure t
@@ -409,7 +407,6 @@
 	      ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
 	      ([remap xref-find-references] . lsp-ui-peek-find-references))
   :commands lsp-ui
-  :init
   :custom
   (lsp-ui-sideline-enable t)
   (lsp-ui-sideline-ignore-duplicate t)
@@ -725,6 +722,7 @@
 ;; JSCS
 (use-package jscs
   :ensure t
+  :after js2-mode
   :hook
   (js-mode . jscs-indent-apply)
   (js2-mode . jscs-indent-apply)
@@ -832,6 +830,82 @@
   ;; As `save-place-mode' does
   (unless noninteractive
     (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
+
+;; Docker TRAMP
+(use-package docker-tramp
+  :ensure t)
+
+;; JS
+(use-package js2-mode
+  :ensure t
+  :mode "\\.js\\'"
+  :init
+  (setq-default js2-additional-externs
+		'("$"
+		  "$A" ; salesforce lightning component
+		  "$LightningApp" ; salesforce
+		  "AccessifyHTML5"
+		  "Blob"
+		  "FormData"
+		  "KeyEvent"
+		  "Raphael"
+		  "React"
+		  "URLSearchParams"
+		  "__dirname" ; Node
+		  "_content" ; Keysnail
+		  "after"
+		  "afterEach"
+		  "angular"
+		  "app"
+		  "assert"
+		  "assign"
+		  "before"
+		  "beforeEach"
+		  "browser"
+		  "by"
+		  "clearInterval"
+		  "clearTimeout"
+		  "command" ; Keysnail
+		  "content" ; Keysnail
+		  "decodeURI"
+		  "define"
+		  "describe"
+		  "display" ; Keysnail
+		  "documentRef"
+		  "element"
+		  "encodeURI"
+		  "expect"
+		  "ext" ; Keysnail
+		  "fetch"
+		  "gBrowser" ; Keysnail
+		  "global"
+		  "goDoCommand" ; Keysnail
+		  "hook" ; Keysnail
+		  "inject"
+		  "isDev"
+		  "it"
+		  "jQuery"
+		  "jasmine"
+		  "key" ; Keysnail
+		  "ko"
+		  "log"
+		  "mockStore"
+		  "module"
+		  "mountWithTheme"
+		  "plugins" ; Keysnail
+		  "process"
+		  "require"
+		  "setInterval"
+		  "setTimeout"
+		  "shell" ; Keysnail
+		  "tileTabs" ; Firefox addon
+		  "util" ; Keysnail
+		  "utag")))
+
+;; Visualize color codes
+(use-package rainbow-mode
+  :ensure t
+  :hook js2-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
