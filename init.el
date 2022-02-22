@@ -1,5 +1,13 @@
+;;; package --- Summary
+;;; Commentary:
+
+;;; Code:
+
 ;; detach customizations to a seperate file
 (setq custom-file (locate-user-emacs-file "custom.el"))
+
+(defvar use-xah-fly-keys nil
+  "Toggle xah-fly-keys instead of evil.")
 
 ;; Minimal UI
 (scroll-bar-mode -1)
@@ -8,16 +16,16 @@
 (menu-bar-mode   -1)
 
 ;; "sane defaults" - https://sam217pa.github.io/2016/09/02/how-to-build-your-own-spacemacs/
-(setq delete-old-versions -1 )		; delete excess backup versions silently
-(setq version-control t )		; use version control
-(setq vc-make-backup-files t )		; make backups file even when in version controlled dir
+(setq delete-old-versions -1)		; delete excess backup versions silently
+(setq version-control t)		; use version control
+(setq vc-make-backup-files t)		; make backups file even when in version controlled dir
 (setq backup-directory-alist `(("." . ,(concat user-emacs-directory (file-name-as-directory "backups"))))) ; which directory to put backups file
-(setq vc-follow-symlinks t )				       ; don't ask for confirmation when opening symlinked file
+(setq vc-follow-symlinks t)				       ; don't ask for confirmation when opening symlinked file
 (setq auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory (file-name-as-directory "auto-save-list")) t))) ;transform backups file name
-(setq inhibit-startup-screen t )	; inhibit useless and old-school startup screen
-(setq ring-bell-function 'ignore )	; silent bell when you make a mistake
-(setq coding-system-for-read 'utf-8 )	; use utf-8 by default
-(setq coding-system-for-write 'utf-8 )
+(setq inhibit-startup-screen t)	; inhibit useless and old-school startup screen
+(setq ring-bell-function 'ignore)	; silent bell when you make a mistake
+(setq coding-system-for-read 'utf-8)	; use utf-8 by default
+(setq coding-system-for-write 'utf-8)
 (setq sentence-end-double-space nil)	; sentence SHOULD end with only a point.
 (setq-default fill-column 80)		; toggle wrapping text at the 80th character
 (save-place-mode)			  ; save position in files
@@ -26,9 +34,9 @@
 ;; Package configs
 (require 'package)
 (setq package-enable-at-startup nil)
-(setq package-archives '(("org"   . "http://orgmode.org/elpa/")
-                         ("gnu"   . "http://elpa.gnu.org/packages/")
-                         ("melpa" . "https://melpa.org/packages/")))
+(setq package-archives '(("gnu"   . "http://elpa.gnu.org/packages/")
+                         ("melpa" . "https://melpa.org/packages/")
+			 ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 (package-initialize)
 
 ;; Bootstrap `use-package'
@@ -81,7 +89,7 @@
   (exwm-randr-enable))
 
 (defun change-to-he ()
-  "miaw."
+  "Change to hebrew."
   (interactive)
   (exwm-input-set-local-simulation-keys
    '(([?a] . [169 215]))))
@@ -97,12 +105,15 @@
 
 ;; Vim mode
 (use-package evil
+  :unless use-xah-fly-keys
   :ensure t
   :custom
   (evil-want-integration t) ;; This is optional since it's already set to t by default.
   (evil-want-keybinding nil)
   ;; finer `undo' while in insert mode
   (evil-want-fine-undo t)
+  (evil-move-cursor-back nil)
+  (evil-move-beyond-eol t)
   :config
   (evil-mode 1)
   ;; Taken from: https://gist.github.com/kidd/d8dcf0d40d184ecec0a87d28cee52a49
@@ -158,39 +169,52 @@
 
 ;; `evil' integration with other packages
 (use-package evil-collection
-  :after evil
+  ;; :after evil-surround
   :ensure t
   :custom
   (evil-collection-setup-minibuffer t)
   (evil-collection-outline-bind-tab-p nil)
-  (evil-collection-company-use-tng nil)
+  ;; (evil-collection-company-use-tng nil)
   :config
+  ;; (require 'evil-surround)
+  ;; (require 'lispyville)
+  ;; (setq evil-collection-mode-list (seq-filter (lambda (elt)
+  ;; 						(not (if (listp elt)
+  ;; 							 (member 'ztree elt)
+  ;; 						       (equal elt 'ztree))))
+  ;; 					      evil-collection-mode-list))
   (evil-collection-init)
   ;; mimick `company-tng-configure-default', but don't disable choosing
-  (with-eval-after-load 'company
-    (setq company-require-match nil)
-    (setq company-frontends '(;; company-tng-frontend
-                              company-pseudo-tooltip-frontend
-                              company-echo-metadata-frontend))
-    (let ((keymap company-active-map))
-      (define-key keymap [tab] 'company-select-next)
-      (define-key keymap (kbd "TAB") 'company-select-next)
-      (define-key keymap [backtab] 'company-select-previous)
-      (define-key keymap (kbd "S-TAB") 'company-select-previous))
-    )
+  ;; (with-eval-after-load 'company
+  ;;   (setq company-require-match nil)
+  ;;   (setq company-frontends '(;; company-tng-frontend
+  ;;                             company-pseudo-tooltip-frontend
+  ;;                             company-echo-metadata-frontend))
+  ;;   (let ((keymap company-active-map))
+  ;;     (define-key keymap [tab] 'company-select-next)
+  ;;     (define-key keymap (kbd "TAB") 'company-select-next)
+  ;;     (define-key keymap [backtab] 'company-select-previous)
+  ;;     (define-key keymap (kbd "S-TAB") 'company-select-previous))
+  ;;   )
   )
 
 ;; Vim mode surround functionality
 (use-package evil-surround
+  :after evil
   :ensure t
   :config
   (global-evil-surround-mode 1))
 
 ;; Theme
 (use-package doom-themes
+  :disabled
   :ensure t
   :config
   (load-theme 'doom-one t))
+
+(use-package dracula-theme
+  :config (load-theme 'dracula t)
+  :ensure t)
 
 ;; Which Key
 (use-package which-key
@@ -202,7 +226,9 @@
   (which-key-mode))
 
 ;; avy
-(use-package avy :ensure t
+(use-package avy
+  :unless use-xah-fly-keys
+  :ensure t
   :commands (avy-goto-word-1))
 
 ;; Smex (for ivy?)
@@ -214,22 +240,24 @@
   :ensure t
   ;; :commands (ivy-switch-buffer)
   :after smex
-  :config
+  :custom
   (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t)
-  (setq enable-recursive-minibuffers t))
+  (ivy-use-virtual-buffers t)
+  (enable-recursive-minibuffers t))
 
 ;; counsel
 (use-package counsel
   :ensure t
+  :config (counsel-mode)
   ;; :commands (counsel-M-x counsel-find-file counsel-describe-variable counsel-describe-function)
   )
 
 ;; swiper
-(use-package swiper
-  :ensure t
-  ;; :commands (swiper)
-  )
+;; (use-package swiper
+;;   :after ivy
+;;   :ensure t
+;;   ;; :commands (swiper)
+;;   )
 
 ;; Company mode
 (use-package company
@@ -251,8 +279,14 @@
   ;; (define-key company-active-map (kbd "C-c h") #'company-quickhelp-manual-begin)
   )
 
+(use-package company-box
+  :ensure t
+  :after company
+  :hook (company-mode . company-box-mode))
+
 ;; Custom keybinding
 (use-package general
+  :unless use-xah-fly-keys
   :ensure t
   :custom
   (general-override-states '(insert
@@ -266,7 +300,7 @@
   :config
   (general-define-key
    ;; replace default keybindings
-   "C-s" 'counsel-grep-or-swiper ; search for string in current buffer
+   "C-s" 'swiper-isearch ; search for string in current buffer
    "M-x" 'counsel-M-x            ; replace default M-x with ivy backend
    ;; "TAB" 'indent-for-tab-command ; replace default with 'smart' one
    "s-!" 'counsel-linux-app ; for EXWM
@@ -282,7 +316,7 @@
    :keymaps 'override
    :prefix "SPC"
    :non-normal-prefix "M-SPC"
-   ;; "/"   '(counsel-rg :which-key "ripgrep") ; You'll need counsel package for this
+   "/"   '(counsel-rg :which-key "ripgrep") ; You'll need counsel package for this
    "TAB" '(spacemacs/alternate-buffer :which-key "previous buffer")
    "SPC" '(counsel-M-x :which-key "M-x")
    "P" 'counsel-yank-pop ; kill ring
@@ -340,8 +374,9 @@
   (lsp-after-open . (lambda ()
 		      (remove-hook 'before-save-hook #'gofmt-before-save t)
 		      (add-hook 'before-save-hook #'gofmt-before-save nil t)))
-  :custom
-  (gofmt-command "goimports"))
+  ;; :custom
+  ;; (gofmt-command "goimports")
+  )
 
 (use-package go-eldoc
   :ensure t
@@ -349,10 +384,17 @@
   :commands go-eldoc-setup
   :hook (go-mode . go-eldoc-setup))
 
+(use-package go-dlv
+  :ensure t
+  :after go-mode
+  :commands (dlv dlv-current-func)
+  :custom
+  (go-dlv-command-name "~/twistlock/dlv --listen=localhost:23456"))
+
 (use-package lsp-mode
   ;; :quelpa (lsp-mode :fetcher github :repo "farva/lsp-mode" :branch "redundant-client")
   :ensure t
-  :commands lsp
+  :commands (lsp lsp-deferred)
   ;; :init
   ;; (setq lsp-clients-go-server "")
   ;; (setq lsp-clients-go-server "bingo")
@@ -374,8 +416,16 @@
   (lsp-prefer-flymake nil)
   (lsp-eldoc-enable-hover nil)
   (lsp-eldoc-enable-signature-help nil)
-  :hook (go-mode . lsp)
-  :config
+  (lsp-clients-clangd-executable "/usr/local/opt/llvm/bin/clangd")
+  :hook
+  (go-mode . lsp-deferred)
+  (sh-mode . lsp-deferred)
+  (html-mode . lsp-deferred)
+  (js-mode . lsp-deferred)
+  (rust-mode . lsp-deferred)
+  (c-mode . lsp-deferred)
+  (lsp-mode . lsp-enable-which-key-integration)
+  ;; :config
   ;; (lsp-register-client
   ;;  (make-lsp-client :new-connection (lsp-stdio-connection "bingo --diagnostics-style=instant")
   ;;                   :major-modes '(go-mode)
@@ -383,46 +433,82 @@
   ;;                   :server-id 'my-go-bingo
   ;;                   :library-folders-fn (lambda (_workspace)
   ;;                                         lsp-clients-go-library-directories)))
-  (defun my:lsp-clients-go--make-init-options ()
-    "My init options for go-langserver."
-    `(:funcSnippetEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-func-snippet-enabled)
-                          :gocodeCompletionEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-gocode-completion-enabled)
-                          :formatTool ,lsp-clients-go-format-tool
-  			  :lintTool "golint"
-                          :goimportsLocalPrefix ,lsp-clients-go-imports-local-prefix
-                          :maxParallelism ,lsp-clients-go-max-parallelism
-                          :useBinaryPkgCache ,lsp-clients-go-use-binary-pkg-cache
-                          :diagnosticsEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-diagnostics-enabled)))
+  ;; (defun my:lsp-clients-go--make-init-options ()
+  ;;   "My init options for go-langserver."
+  ;;   `(:funcSnippetEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-func-snippet-enabled)
+  ;;                         :gocodeCompletionEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-gocode-completion-enabled)
+  ;;                         :formatTool ,lsp-clients-go-format-tool
+  ;; 			  :lintTool "golint"
+  ;;                         :goimportsLocalPrefix ,lsp-clients-go-imports-local-prefix
+  ;;                         :maxParallelism ,lsp-clients-go-max-parallelism
+  ;;                         :useBinaryPkgCache ,lsp-clients-go-use-binary-pkg-cache
+  ;;                         :diagnosticsEnabled ,(lsp-clients-go--bool-to-json lsp-clients-go-diagnostics-enabled)))
   ;; (lsp-register-client
   ;;  (make-lsp-client :new-connection (lsp-stdio-connection "gopls")
   ;;                   :major-modes '(go-mode)
   ;;                   :priority -10
   ;; 		    :server-id 'gopls))
+  ;; (lsp-register-client
+  ;;  (make-lsp-client :new-connection (lsp-tramp-connection
+  ;; 				     (lambda () (cons "gopls" lsp-gopls-server-args)))
+  ;; 		    :major-modes '(go-mode)
+  ;; 		    :remote? t
+  ;; 		    :priority 10
+  ;; 		    :server-id 'gopls-remote
+  ;; 		    :library-folders-fn (lambda (_workspace)
+  ;; 					  lsp-clients-go-library-directories)))
   )
+
+;; (use-package lsp-ui
+;;   :ensure t
+;;   ;; :hook (lsp-mode . lsp-ui-mode)
+;;   :bind (:map lsp-ui-mode-map
+;; 	      ([remap lsp-find-definition] . lsp-ui-peek-find-definitions)
+;; 	      ([remap lsp-find-references] . lsp-ui-peek-find-references))
+;;   ;; :commands lsp-ui
+;;   ;; :custom
+;;   ;; (lsp-ui-sideline-enable t)
+;;   ;; (lsp-ui-sideline-ignore-duplicate t)
+;;   ;; (lsp-ui-sideline-show-hover nil)
+;;   ;; (lsp-ui-sideline-show-symbol nil)
+;;   ;; :config
+;;   ;; (with-eval-after-load 'evil
+;;   ;;   (evil-define-key 'normal lsp-ui-mode-map
+;;   ;;     (kbd "gd") #'xref-find-definitions
+;;   ;;     (kbd "gr") #'xref-find-references))
+;;   )
 
 (use-package lsp-ui
   :ensure t
-  :hook (lsp-mode . lsp-ui-mode)
-  :bind (:map lsp-ui-mode-map
-	      ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
-	      ([remap xref-find-references] . lsp-ui-peek-find-references))
-  :commands lsp-ui
-  :custom
-  (lsp-ui-sideline-enable t)
-  (lsp-ui-sideline-ignore-duplicate t)
-  (lsp-ui-sideline-show-hover nil)
-  (lsp-ui-sideline-show-symbol nil)
-  :config
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal lsp-ui-mode-map
-      (kbd "gd") #'xref-find-definitions
-      (kbd "gr") #'xref-find-references)))
+  ;; :commands lsp-ui-mode
+  )
 
-(use-package company-lsp
+;; lsp-company should work out-of-the-box
+;; (use-package company-lsp
+;;   :ensure t
+;;   :commands company-lsp
+;;   :after company
+;;   ;; :init (add-to-list 'company-backends #'company-lsp)
+;;   )
+
+(use-package lsp-ivy
+  :after ivy
   :ensure t
-  :commands company-lsp
-  :after company
-  :init (add-to-list 'company-backends #'company-lsp))
+  ;; :after lsp
+  :commands lsp-ivy-workspace-symbol
+  :bind (:map lsp-mode-map
+	      ([remap xref-find-apropos] . lsp-ivy-workspace-symbol))
+  ;; :hook (lsp-mode . (lambda () (evil-define-key 'normal lsp-mode-map
+  ;; 				 (kbd "ga") lsp-ivy-workspace-symbol)))
+  ;; :config
+  ;; (with-eval-after-load 'lsp-mode
+  ;;   (evil-define-key 'normal lsp-mode-map
+  ;;     (kbd "ga") lsp-ivy-workspace-symbol))
+  )
+
+(use-package lsp-treemacs
+  :ensure t
+  :commands lsp-treemacs-errors-list)
 
 (use-package eglot
   :disabled
@@ -438,6 +524,10 @@
 ;; Projectile
 (use-package projectile
   :ensure t
+  :custom
+  ;; (projectile-indexing-method 'native)
+  (projectile-git-command
+   "git ls-files -zc --exclude-standard | tr '\\0' '\\n' | grep -v node_modules | grep -v www/public/libs/ | grep -v vendor/ | grep -v POCs/ | grep -v nobu/ | grep -v pkg/test/test_container/ | tr '\\n' '\\0'")
   :config
   (projectile-mode +1))
 
@@ -451,7 +541,8 @@
 (use-package markdown-mode
   :ensure t
   :commands (markdown-mode gfm-mode)
-  :mode (("README\\.md\\'" . gfm-mode)
+  :mode (("twistlock/.*\\.md\\'" . gfm-mode)
+	 ("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :custom
@@ -570,27 +661,51 @@
 
 ;; GH live preview markdown
 (use-package vmd-mode
-  :ensure t)
+  :ensure t
+  :init (setq vmd-binary-path "~/.npm-global/bin/vmd"))
 
 ;; smartparens
 (use-package smartparens
   :ensure t
+  :unless use-xah-fly-keys
   :commands (smartparens-strict-mode smartparens-mode)
-  :init (add-hook 'prog-mode-hook (lambda ()
-				    (if (derived-mode-p 'sh-mode)
-					(smartparens-mode)
-				      (smartparens-strict-mode))))
+  :hook
+  (sly-mrepl-mode . smartparens-strict-mode)
+  (prog-mode . smartparens-mode)
+  ;; :init (add-hook 'prog-mode-hook (lambda ()
+  ;; 				    (if (derived-mode-p 'sh-mode)
+  ;; 					(smartparens-mode)
+  ;; 				      (smartparens-strict-mode))))
   :config
   (require 'smartparens-config))
 
+;; lispy
+;; (use-package lispy
+;;   :after evil-collection
+;;   :ensure t
+;;   :hook (emacs-lisp-mode lisp-mode))
+
 ;; lispyvill
 (use-package lispyville
+  :after evil-surround
+  :unless use-xah-fly-keys
   :ensure t
+  :commands (lispyville-wrap-lispy-mark-symbol-visual
+	     lispyville-wrap-lispy-mark-visual
+	     lispyville-wrap-lispy-mark-symbol-special
+	     lispyville-wrap-lispy-mark-special)
   :hook (prog-mode . lispyville-mode)
   :config
   (with-eval-after-load 'evil-commentary
     (add-to-list 'evil-commentary-comment-function-for-mode-alist '(emacs-lisp-mode . lispyville-comment-or-uncomment))
     (add-to-list 'evil-commentary-comment-function-for-mode-alist '(lisp-mode . lispyville-comment-or-uncomment))))
+
+;; (use-package lispyville
+;;   ;; :init
+;;   ;; (general-add-hook '(emacs-lisp-mode-hook lisp-mode-hook) #'lispyville-mode)
+;;   :hook lispy-mode
+;;   :config
+;;   (lispyville-set-key-theme '(operators c-w additional)))
 
 ;; REST-client
 (use-package restclient
@@ -621,6 +736,7 @@
 
 ;; Evil comments
 (use-package evil-commentary
+  :after evil
   :ensure t
   :config
   (evil-commentary-mode))
@@ -628,16 +744,12 @@
 ;; Rainbow delimiters
 (use-package rainbow-delimiters
   :ensure t
-  :config
   :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; Magit
 (use-package magit
-  :ensure t)
-
-(use-package evil-magit
   :ensure t
-  :after (:all evil magit))
+  :custom (magit-git-executable "/usr/local/bin/git"))
 
 ;; Yaml
 (use-package yaml-mode
@@ -673,10 +785,17 @@
   :config (elpy-enable))
 
 ;; Aggressive indent
+(defun aggressive-indent-avoid-sly-scratch ()
+  "Enable aggressive indenting but not in `sly-scratch' buffer."
+  (if (and (fboundp 'sly-buffer-name)
+	   (string= (sly-buffer-name :scratch) (buffer-name)))
+      (electric-indent-local-mode -1)
+    (aggressive-indent-mode)))
+
 (use-package aggressive-indent
   :ensure t
   :hook
-  (lisp-mode . aggressive-indent-mode)
+  (lisp-mode . aggressive-indent-avoid-sly-scratch)
   (emacs-lisp-mode . aggressive-indent-mode))
 
 ;; Workspaces
@@ -701,7 +820,7 @@
 (use-package multi-term
   :ensure t
   :config
-  (setq multi-term-program "/bin/bash"))
+  (setq multi-term-program "/bin/zsh"))
 
 ;; backward-forward
 (use-package backward-forward
@@ -720,16 +839,16 @@
   (highlight-indent-guides-method 'character))
 
 ;; JSCS
-(use-package jscs
-  :ensure t
-  :after js2-mode
-  :hook
-  (js-mode . jscs-indent-apply)
-  (js2-mode . jscs-indent-apply)
-  (json-mode . jscs-indent-apply)
-  ;; on save
-  (js-mode . jscs-fix-run-before-save)
-  (js2-mode . jscs-fix-run-before-save))
+;; (use-package jscs
+;;   :ensure t
+;;   :after js2-mode
+;;   :hook
+;;   (js-mode . jscs-indent-apply)
+;;   (js2-mode . jscs-indent-apply)
+;;   (json-mode . jscs-indent-apply)
+;;   ;; on save
+;;   (js-mode . jscs-fix-run-before-save)
+;;   (js2-mode . jscs-fix-run-before-save))
 
 ;; EXWM-evil
 (use-package exwm-firefox-core
@@ -799,37 +918,37 @@
       (kbd "gd") #'sly-edit-definition
       (kbd "gr") #'sly-edit-uses)))
 
-(use-package pdf-tools
-  :ensure t
-  :config
-  (pdf-loader-install)
-  (defun me/pdf-set-last-viewed-bookmark ()
-    (interactive)
-    (when (eq major-mode 'pdf-view-mode)
-      (bookmark-set (me//pdf-get-bookmark-name))))
-
-  (defun me//pdf-jump-last-viewed-bookmark ()
-    (bookmark-set "fake")
-    (let ((bmk (me//pdf-get-bookmark-name)))
-      (when (me//pdf-has-last-viewed-bookmark bmk)
-        (bookmark-jump bmk))))
-
-  (defun me//pdf-has-last-viewed-bookmark (bmk)
-    (assoc bmk bookmark-alist))
-
-  (defun me//pdf-get-bookmark-name ()
-    (concat "PDF-last-viewed: " (buffer-file-name)))
-
-  (defun me//pdf-set-all-last-viewed-bookmarks ()
-    (dolist (buf (buffer-list))
-      (with-current-buffer buf (me/pdf-set-last-viewed-bookmark))))
-
-  (add-hook 'kill-buffer-hook 'me/pdf-set-last-viewed-bookmark)
-  (add-hook 'pdf-view-mode-hook 'me//pdf-jump-last-viewed-bookmark)
-
-  ;; As `save-place-mode' does
-  (unless noninteractive
-    (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
+;;(use-package pdf-tools
+;;  :ensure t
+;;  :config
+;;  (pdf-loader-install)
+;;  (defun me/pdf-set-last-viewed-bookmark ()
+;;    (interactive)
+;;    (when (eq major-mode 'pdf-view-mode)
+;;      (bookmark-set (me//pdf-get-bookmark-name))))
+;;
+;;  (defun me//pdf-jump-last-viewed-bookmark ()
+;;    (bookmark-set "fake")
+;;    (let ((bmk (me//pdf-get-bookmark-name)))
+;;      (when (me//pdf-has-last-viewed-bookmark bmk)
+;;        (bookmark-jump bmk))))
+;;
+;;  (defun me//pdf-has-last-viewed-bookmark (bmk)
+;;    (assoc bmk bookmark-alist))
+;;
+;;  (defun me//pdf-get-bookmark-name ()
+;;    (concat "PDF-last-viewed: " (buffer-file-name)))
+;;
+;;  (defun me//pdf-set-all-last-viewed-bookmarks ()
+;;    (dolist (buf (buffer-list))
+;;      (with-current-buffer buf (me/pdf-set-last-viewed-bookmark))))
+;;
+;;  (add-hook 'kill-buffer-hook 'me/pdf-set-last-viewed-bookmark)
+;;  (add-hook 'pdf-view-mode-hook 'me//pdf-jump-last-viewed-bookmark)
+;;
+;;  ;; As `save-place-mode' does
+;;  (unless noninteractive
+;;    (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
 
 ;; Docker TRAMP
 (use-package docker-tramp
@@ -907,6 +1026,114 @@
   :ensure t
   :hook js2-mode)
 
+(use-package exec-path-from-shell
+  :if (eq system-type 'darwin)
+  :ensure t
+  :config
+  (exec-path-from-shell-initialize)
+  (exec-path-from-shell-copy-env "GOPATH")
+  (exec-path-from-shell-copy-env "GOBIN")
+  (setenv "GOOS" "linux"))
+
+;; (use-package todo-projectile
+;;   :ensure t)
+
+(use-package dap-mode
+  :ensure t
+  :config
+  (dap-mode 1)
+  (dap-ui-mode 1)
+  (require 'dap-go))
+
+(use-package vterm
+  :after evil
+  :load-path "~/emacs-libvterm"
+  :config
+  (add-hook 'vterm-mode-hook
+	    (lambda ()
+	      (setq-local evil-insert-state-cursor 'box)
+	      (evil-insert-state)))
+  (define-key vterm-mode-map [return]                      #'vterm-send-return)
+
+  (setq vterm-keymap-exceptions nil)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-e")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-f")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-a")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-v")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-b")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-w")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-u")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-n")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-m")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-p")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-j")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-k")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-r")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-t")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-g")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-c")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-SPC")    #'vterm--self-insert)
+  (evil-define-key 'normal vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
+  (evil-define-key 'normal vterm-mode-map (kbd ",c")       #'multi-libvterm)
+  (evil-define-key 'normal vterm-mode-map (kbd ",n")       #'multi-libvterm-next)
+  (evil-define-key 'normal vterm-mode-map (kbd ",p")       #'multi-libvterm-prev)
+  (evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
+  (evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
+  (evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
+
+(use-package rust-mode
+  :ensure t
+  :hook (rust-mode . (lambda () (setq indent-tabs-mode nil)))
+  :config (setq rust-format-on-save t))
+
+(use-package toml-mode
+  :ensure t)
+
+(use-package flycheck-rust
+  :requires (rust-mode flycheck)
+  :after rust-mode
+  :hook (flycheck-mode . flycheck-rust-setup)
+  :commands flycheck-rust-setup
+  :ensure t)
+
+(use-package csv-mode
+  :ensure t)
+
+(use-package org
+  :ensure t
+  :if (file-exists-p "~/org/init.el")
+  :config (load "~/org/init.el"))
+
+(use-package org-contrib
+  :ensure t
+  :after org)
+
+;; Should be used when velocity will be kicked out of contrib
+(use-package org-velocity
+  :disabled
+  :after org
+  :quelpa (org-velocity :fetcher github-ssh :repo "ruricolist/org-velocity"))
+
+(use-package org-velocity
+  :after org-contrib)
+
+(use-package helm-org-rifle
+  :ensure t)
+
+(use-package xah-fly-keys
+  :when use-xah-fly-keys
+  :quelpa (xah-fly-keys :fetcher github-ssh :repo "xahlee/xah-fly-keys")
+  :custom
+  (xah-fly-use-control-key nil)
+  (xah-fly-use-meta-key nil)
+  :config
+  (xah-fly-keys-set-layout "qwerty")
+  (xah-fly-keys)
+  (with-eval-after-load 'counsel
+    (setq xah-fly-M-x-command #'counsel-M-x)
+    (general-emacs-define-key xah-fly-command-map [remap isearch-forward] #'swiper-isearch)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -968,7 +1195,7 @@
   (font-lock-add-keywords nil go-test-font-lock-keywords))
 
 (defun go-test--go-test-as-root (args &optional env)
-  "Start the go test command using `ARGS'."
+  "Start the go test command using `ARGS', using `ENV'."
   (let ((buffer "*Go Test*")) ; (concat "*go-test " args "*")))
     (go-test--cleanup buffer)
     (compilation-start (go-test--get-program (go-test--arguments args) " PATH=$PATH sudo -E")
@@ -981,6 +1208,50 @@
 
 ;; (advice-add 'go-test--go-test :override #'go-test--go-test-as-root)
 
+;; (when (eq system-type 'darwin)
+;;   (setq mac-right-command-modifier 'meta)
+;;   (setq mac-right-option-modifier 'control))
+
+(add-to-list 'tramp-remote-path 'tramp-own-remote-path)
+
+(defun run-goland-wrapper (f &rest args)
+  "Run `F' with `ARGS' through the GoLand wrapper."
+  (let ((go-command "GOROOT=~/twistlock/go1.12.7 ~/twistlock/go1.12.7/bin/go"))
+    (apply f args)))
+(advice-add 'go-test-current-test :around #'run-goland-wrapper)
+(advice-add 'go-test-current-file :around #'run-goland-wrapper)
+(advice-add 'go-test-current-project :around #'run-goland-wrapper)
+
+;; Taken from: https://stackoverflow.com/a/20788581
+(defun my-colorize-compilation-buffer ()
+  "Compilation buffer with colors."
+  (when (eq major-mode 'compilation-mode)
+    (require 'ansi-color)
+    (ansi-color-apply-on-region compilation-filter-start (point-max))))
+(add-hook 'compilation-filter-hook 'my-colorize-compilation-buffer)
+
+(defun my-rust-run ()
+  "Build and run Rust code."
+  (interactive)
+  (let ((compilation-buffer-name-function (lambda (mode-name) "" "*Rust Run*")))
+    (rust-run))
+  (let (
+	(orig-win (selected-window))
+	(run-win (display-buffer (get-buffer "*Rust Run*") nil 'visible))
+	)
+    (select-window run-win)
+    (comint-mode)
+    (read-only-mode 0)
+    (select-window orig-win)
+    )
+  )
+
+(require 'ansi-color)
+(defun display-ansi-colors ()
+  "Display ANSI colors in buffer."
+  (interactive)
+  (ansi-color-apply-on-region (point-min) (point-max)))
+
 ;;;;;;;;;;;;;
 ;; kmacros ;;
 ;;;;;;;;;;;;;
@@ -990,3 +1261,6 @@
 
 ;; Load customizations from a dedicated file
 (load custom-file)
+
+(provide 'init)
+;;; init.el ends here
