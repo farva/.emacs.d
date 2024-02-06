@@ -9,6 +9,11 @@
 (defvar use-xah-fly-keys nil
   "Toggle xah-fly-keys instead of evil.")
 
+(eval-when-compile
+  (require 'use-package))
+;; (require 'diminish)                ;; if you use :diminish
+;; (require 'bind-key)                ;; if you use any :bind variant
+
 ;; Minimal UI
 (scroll-bar-mode -1)
 (tool-bar-mode   -1)
@@ -40,10 +45,10 @@
 (package-initialize)
 
 ;; Bootstrap `use-package'
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(require 'use-package)
+;; (unless (package-installed-p 'use-package)
+;;   (package-refresh-contents)
+;;   (package-install 'use-package))
+;; (require 'use-package)
 
 ;; Load EXWM
 (use-package exwm
@@ -268,7 +273,10 @@
   ;; Show suggestions after entering one character.
   (setq company-minimum-prefix-length 1)
   (setq company-selection-wrap-around t)
-  :hook (after-init . global-company-mode))
+  :hook (after-init . global-company-mode)
+  ;; :custom
+  ;; (company-global-modes '(not eshell-mode))
+  )
 
 (use-package company-quickhelp
   :disabled
@@ -391,6 +399,20 @@
   :custom
   (go-dlv-command-name "~/twistlock/dlv --listen=localhost:23456"))
 
+;; CSharp mode
+(use-package csharp-mode
+  :ensure t
+  :mode "\\.cs\\'"
+  :custom (lsp-csharp-server-path "~/omnisharp/run"))
+
+;; nand2tetris
+(use-package nand2tetris
+  ;; :ensure t
+  ;; :mode ("\\.hdl\\'" . nand2tetris-mode)
+  :commands nand2tetris-assembler-mode
+  :quelpa (nand2tetris :fetcher github-ssh :repo "farva/nand2tetris.el" :branch "fix-auto-mode" :files (:defaults "snippets"))
+  :custom (nand2tetris-core-base-dir "~/projects/nand2tetris"))
+
 (use-package lsp-mode
   ;; :quelpa (lsp-mode :fetcher github :repo "farva/lsp-mode" :branch "redundant-client")
   :ensure t
@@ -424,6 +446,8 @@
   (js-mode . lsp-deferred)
   (rust-mode . lsp-deferred)
   (c-mode . lsp-deferred)
+  (python-mode . lsp-deferred)
+  (csharp-mode . lsp-deferred)
   (lsp-mode . lsp-enable-which-key-integration)
   ;; :config
   ;; (lsp-register-client
@@ -670,7 +694,7 @@
   :unless use-xah-fly-keys
   :commands (smartparens-strict-mode smartparens-mode)
   :hook
-  (sly-mrepl-mode . smartparens-strict-mode)
+  (sly-mrepl-mode . smartparens-mode)
   (prog-mode . smartparens-mode)
   ;; :init (add-hook 'prog-mode-hook (lambda ()
   ;; 				    (if (derived-mode-p 'sh-mode)
@@ -778,6 +802,7 @@
 ;; Elpy
 (use-package elpy
   :ensure t
+  :disabled
   :init
   (setq elpy-rpc-python-command "python3")
   (setq python-shell-interpreter "python3")
@@ -910,45 +935,52 @@
 
 (use-package sly
   :ensure t
-  :custom
-  (inferior-lisp-program "ros -Q run")
+  :init
+  (load (expand-file-name "~/.roswell/helper.el"))
+  ;; :custom
+  ;; (inferior-lisp-program "ros -Q run")
   :config
   (with-eval-after-load 'evil
     (evil-define-key 'normal sly-mode-map
       (kbd "gd") #'sly-edit-definition
       (kbd "gr") #'sly-edit-uses)))
 
-;;(use-package pdf-tools
-;;  :ensure t
-;;  :config
-;;  (pdf-loader-install)
-;;  (defun me/pdf-set-last-viewed-bookmark ()
-;;    (interactive)
-;;    (when (eq major-mode 'pdf-view-mode)
-;;      (bookmark-set (me//pdf-get-bookmark-name))))
-;;
-;;  (defun me//pdf-jump-last-viewed-bookmark ()
-;;    (bookmark-set "fake")
-;;    (let ((bmk (me//pdf-get-bookmark-name)))
-;;      (when (me//pdf-has-last-viewed-bookmark bmk)
-;;        (bookmark-jump bmk))))
-;;
-;;  (defun me//pdf-has-last-viewed-bookmark (bmk)
-;;    (assoc bmk bookmark-alist))
-;;
-;;  (defun me//pdf-get-bookmark-name ()
-;;    (concat "PDF-last-viewed: " (buffer-file-name)))
-;;
-;;  (defun me//pdf-set-all-last-viewed-bookmarks ()
-;;    (dolist (buf (buffer-list))
-;;      (with-current-buffer buf (me/pdf-set-last-viewed-bookmark))))
-;;
-;;  (add-hook 'kill-buffer-hook 'me/pdf-set-last-viewed-bookmark)
-;;  (add-hook 'pdf-view-mode-hook 'me//pdf-jump-last-viewed-bookmark)
-;;
-;;  ;; As `save-place-mode' does
-;;  (unless noninteractive
-;;    (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
+(use-package tablist
+  :after evil-collection
+  :ensure t)
+
+(use-package pdf-tools
+  :after tablist
+  :ensure t
+  :config
+  ;; (pdf-loader-install)
+  (defun me/pdf-set-last-viewed-bookmark ()
+    (interactive)
+    (when (eq major-mode 'pdf-view-mode)
+      (bookmark-set (me//pdf-get-bookmark-name))))
+
+  (defun me//pdf-jump-last-viewed-bookmark ()
+    (bookmark-set "fake")
+    (let ((bmk (me//pdf-get-bookmark-name)))
+      (when (me//pdf-has-last-viewed-bookmark bmk)
+	(bookmark-jump bmk))))
+
+  (defun me//pdf-has-last-viewed-bookmark (bmk)
+    (assoc bmk bookmark-alist))
+
+  (defun me//pdf-get-bookmark-name ()
+    (concat "PDF-last-viewed: " (buffer-file-name)))
+
+  (defun me//pdf-set-all-last-viewed-bookmarks ()
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf (me/pdf-set-last-viewed-bookmark))))
+
+  (add-hook 'kill-buffer-hook 'me/pdf-set-last-viewed-bookmark)
+  (add-hook 'pdf-view-mode-hook 'me//pdf-jump-last-viewed-bookmark)
+
+  ;; As `save-place-mode' does
+  (unless noninteractive
+    (add-hook 'kill-emacs-hook #'me//pdf-set-all-last-viewed-bookmarks)))
 
 ;; Docker TRAMP
 (use-package docker-tramp
@@ -1116,6 +1148,7 @@
   :quelpa (org-velocity :fetcher github-ssh :repo "ruricolist/org-velocity"))
 
 (use-package org-velocity
+  :disabled
   :after org-contrib)
 
 (use-package helm-org-rifle
@@ -1133,6 +1166,49 @@
   (with-eval-after-load 'counsel
     (setq xah-fly-M-x-command #'counsel-M-x)
     (general-emacs-define-key xah-fly-command-map [remap isearch-forward] #'swiper-isearch)))
+
+(use-package evil-multiedit
+  :ensure t
+  :config (evil-multiedit-default-keybinds))
+
+(use-package evil-numbers
+  :after evil
+  :ensure t
+  :config
+  (evil-define-key 'normal 'global (kbd "C-a") #'evil-numbers/inc-at-pt)
+  ;; (evil-define-key 'normal 'global (kbd "<kp-subtract>") #'evil-numbers/dec-at-pt)
+  )
+
+;; (require 'em-smart)
+(use-package eshell
+  :custom
+  (eshell-modules-list '(eshell-alias
+			 eshell-banner
+			 eshell-basic
+			 eshell-cmpl
+			 eshell-dirs
+			 eshell-glob
+			 eshell-hist
+			 eshell-ls
+			 eshell-pred
+			 eshell-prompt
+			 eshell-script
+			 eshell-term
+			 eshell-unix
+			 eshell-smart))
+  :config
+  (defun my-company-files-post-completion-advice (oldfun r)
+    "Advising post completion in `eshell-mode' to wrap result filename in double quotes"
+    (if (and (derived-mode-p 'eshell-mode) (string-match " " r))
+	(let ((total-width (string-width r)))
+	  (backward-char total-width)
+	  (insert "\"")
+	  (forward-char total-width)
+	  (funcall oldfun r)
+	  (insert "\""))
+      (funcall oldfun r)))
+  (eval-after-load 'company-files
+    (advice-add 'company-files--post-completion :around #'my-company-files-post-completion-advice)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions and stuff ;;
@@ -1251,6 +1327,20 @@
   "Display ANSI colors in buffer."
   (interactive)
   (ansi-color-apply-on-region (point-min) (point-max)))
+
+;; Eshell
+(defun my-company-files-post-completion-advice (oldfun r)
+  "Advising post completion in `eshell-mode' to wrap result filename in double quotes"
+  (if (and (derived-mode-p 'eshell-mode) (string-match " " r))
+      (let ((total-width (string-width r)))
+	(backward-char total-width)
+	(insert "\"")
+	(forward-char total-width)
+	(funcall oldfun r)
+	(insert "\""))
+    (funcall oldfun r)))
+(eval-after-load 'company-files
+  (advice-add 'company-files--post-completion :around #'my-company-files-post-completion-advice))
 
 ;;;;;;;;;;;;;
 ;; kmacros ;;
